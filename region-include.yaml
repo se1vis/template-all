@@ -163,10 +163,13 @@ proxy-groups:
     type: select
     proxies: [Default, Auto, DIRECT]
     icon: https://raw.githubusercontent.com/Koolson/Qure/refs/heads/master/IconSet/Color/Instagram.png
-  - name: us, type: select, filter: (?i)美|us|unitedstates|united states, proxies: []
-  - name: japan, type: select, filter: (?i)日|jp|japan, proxies: []
-  - name: korea, type: select, filter: (?i)韩|kr|korea, proxies: []
-  - name: us-auto, type: url-test, url: https://www.gstatic.com/generate_204, filter: (?i)美|us|unitedstates|united states, tolerance: 20, interval: 300, proxies: []
+  - name: us-auto
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    filter: (?i)美|us|unitedstates|united states
+    tolerance: 20
+    interval: 300
+    proxies: []
     icon: https://raw.githubusercontent.com/Koolson/Qure/refs/heads/master/IconSet/Color/United_States.png
   - name: japan-auto
     type: url-test
