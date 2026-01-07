@@ -119,6 +119,16 @@
         "outbound": "youtube"
       },
       {
+        "rule_set": "github_domain",
+        "action": "route",
+        "outbound": "github"
+      },
+      {
+        "rule_set": "paypal_domain",
+        "action": "route",
+        "outbound": "paypal"
+      },
+      {
         "rule_set": "openai_domain",
         "action": "route",
         "outbound": "openai"
@@ -207,6 +217,20 @@
         "type": "remote",
         "format": "binary",
         "url": "https://ghfast.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/sing/geo-lite/geosite/youtube.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "github_domain",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/sing/geo-lite/geosite/github.srs",
+        "download_detour": "direct"
+      },
+      {
+        "tag": "paypal_domain",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/sing/geo-lite/geosite/paypal.srs",
         "download_detour": "direct"
       },
       {
@@ -309,6 +333,40 @@
     },
     {
       "tag": "youtube",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "tw",
+        "tw-auto",
+        "jp",
+        "jp-auto",
+        "us",
+        "us-auto",
+        "all",
+        "all-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "github",
+      "type": "selector",
+      "outbounds": [
+        "proxy",
+        "direct",
+        "tw",
+        "tw-auto",
+        "jp",
+        "jp-auto",
+        "us",
+        "us-auto",
+        "all",
+        "all-auto"
+      ],
+      "default": "proxy"
+    },
+    {
+      "tag": "paypal",
       "type": "selector",
       "outbounds": [
         "proxy",
