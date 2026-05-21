@@ -13,7 +13,7 @@ proxy-providers:
       interval: 300
     proxy: 直连
 
-# 全局配置 
+# 全局配置
 port: 7890
 socks-port: 7891
 redir-port: 7892
@@ -47,29 +47,43 @@ sniffer:
   enable: true
   sniff:
     HTTP:
-      ports: [80, 8080-8880]
+      ports:
+        - 80
+        - 8080-8880
       override-destination: true
     TLS:
-      ports: [443, 8443]
+      ports:
+        - 443
+        - 8443
     QUIC:
-      ports: [443, 8443]
+      ports:
+        - 443
+        - 8443
   force-domain:
     - "+.v2ex.com"
   skip-domain:
     - "+.baidu.com"
+    - "+.tailscale.com"
+    - "+.ts.net"
 
-# 入站  
+# 入站
 tun:
   enable: true
   # system/gvisor/mixed
   stack: mixed
-  dns-hijack: ["any:53", "tcp://any:53"]
+  dns-hijack:
+    - "any:53"
+    - "tcp://any:53"
   #使用nikki，混入全部不修改的情况，开启接口指定为nikki
   #使用仅内核自行修改下面三项为true
   #device: nikki
   auto-route: false
   auto-redirect: false
   auto-detect-interface: false
+  # Tailscale 网段排除，防止 TUN 劫持产生路由环路
+  route-exclude-address:
+    - 100.64.0.0/10
+    - fd7a:115c:a1e0::/48
 
 # DNS模块
 dns:
@@ -86,6 +100,10 @@ dns:
     - "+.msftncsi.com"
     - "time.*.com"
     - "+.market.xiaomi.com"
+    # Tailscale 域名排除 fake-ip
+    - "+.tailscale.com"
+    - "+.ts.net"
+    - "+.tailscale.io"
   default-nameserver:
     - 223.5.5.5
   proxy-server-nameserver:
@@ -94,39 +112,213 @@ dns:
   nameserver:
     - 223.5.5.5
     - 119.29.29.29
- 
+
 # 出站策略，根据自己情况调整每个策略里分组排序，增删都可以，比如把美国自动放到第一个，比如删除香港故转，注意别漏掉表情逗号等。
 # 如果相应分组没有筛选到对应的国家，请根据自己节点名字调整筛选关键字。
 # 没有再使用锚点，是考虑很多新手修改难度，这样新手修改某个分组更容易些。
 # 节点信息
 proxies:
-  - {name: 直连, type: direct}
+  - name: 直连
+    type: direct
+  # Tailscale 节点 - 让 Mihomo 内核直接加入 Tailscale 网络，无需单独安装 Tailscale 插件
+  - name: "tailscale"
+    type: tailscale
+    # 在 Tailscale 控制台中显示的设备名称
+    hostname: "iStoreOS-Mihomo"
+    # 认证密钥：在 https://login.tailscale.com/admin/settings/keys 生成
+    # 首次不填会在 Mihomo 日志中输出登录 URL，手动访问完成认证
+    auth-key: ""  # <-- 替换为你的 tskey-auth-xxxxxxxx
+    # 状态持久化目录，保存登录凭证防止重启后重新认证
+    state-dir: "/etc/openclash/tailscale"
+    # 接受 Tailnet 中发布的子网路由
+    accept-routes: true
+    # 启用 UDP（DERP/STUN 打洞）
+    udp: true
+    # 是否为临时节点（关闭后自动从 Tailnet 移除），建议 false
+    ephemeral: false
+    # 如果使用 Headscale 自建控制服务器，取消注释并填写地址
+    # control-url: "https://controlplane.tailscale.com"
 
 proxy-groups:
-  - {name: 🚀 默认代理, type: select, proxies: [🔯 全部故转, ♻️ 自动选择, 🌐 全部节点, 直连]}
-  - {name: 📹 YouTube, type: select, proxies: [🔯 美国故转, 🔯 日本故转, ♻️ 美国自动, ♻️ 日本自动, ♻️ 自动选择, 🌐 全部节点, 直连]}
-  - {name: 🍀 Google, type: select, proxies: [🔯 日本故转, 🔯 美国故转, ♻️ 日本自动, ♻️ 美国自动, ♻️ 自动选择, 🌐 全部节点, 直连]}
-  - {name: 🤖 ChatGPT, type: select, proxies: [🔯 日本故转, 🔯 美国故转, ♻️ 日本自动, ♻️ 美国自动, ♻️ 自动选择, 🌐 全部节点, 直连]}
-  - {name: 👨🏿‍💻 GitHub, type: select, proxies: [🔯 日本故转, 🔯 美国故转, ♻️ 日本自动, ♻️ 美国自动, ♻️ 自动选择, 🌐 全部节点, 直连]}
-  - {name: 🐬 OneDrive, type: select, proxies: [🔯 日本故转, 🔯 美国故转, ♻️ 日本自动, ♻️ 美国自动, ♻️ 自动选择, 🌐 全部节点, 直连]}
-  - {name: 🪟 Microsoft, type: select, proxies: [🔯 日本故转, 🔯 美国故转, ♻️ 日本自动, ♻️ 美国自动, ♻️ 自动选择, 🌐 全部节点, 直连]}
-  - {name: 📲 Telegram, type: select, proxies: [🔯 日本故转, 🔯 美国故转, ♻️ 日本自动, ♻️ 美国自动, ♻️ 自动选择, 🌐 全部节点, 直连]}
-  - {name: 🐦 Twitter, type: select, proxies: [🔯 日本故转, 🔯 美国故转, ♻️ 日本自动, ♻️ 美国自动, ♻️ 自动选择, 🌐 全部节点, 直连]}
-  - {name: 💶 PayPal, type: select, proxies: [🔯 日本故转, 🔯 美国故转, ♻️ 日本自动, ♻️ 美国自动, ♻️ 自动选择, 🌐 全部节点, 直连]}
-  - {name: 🐟 漏网之鱼, type: select, proxies: [🚀 默认代理, 🔯 日本故转, 🔯 美国故转, ♻️ 日本自动, ♻️ 美国自动, ♻️ 自动选择, 🌐 全部节点, 直连]}
-  - {name: ♻️ 日本自动, type: url-test, include-all: true, tolerance: 20, interval: 300, filter: "(?=.*(日|JP|(?i)Japan))^((?!(港|台|韩|新|美)).)*$" }
-  - {name: ♻️ 美国自动, type: url-test, include-all: true, tolerance: 20, interval: 300, filter: "(?=.*(美|US|(?i)States|America))^((?!(港|台|日|韩|新)).)*$"}
-  - {name: 🔯 日本故转, type: fallback, tolerance: 20, interval: 300, proxies: [♻️ 日本自动, ♻️ 自动选择]}
-  - {name: 🔯 美国故转, type: fallback, tolerance: 20, interval: 300, proxies: [♻️ 美国自动, ♻️ 自动选择]}
-  - {name: 🔯 全部故转, type: fallback, tolerance: 20, interval: 300, proxies: [🔯 日本故转, 🔯 美国故转, ♻️ 自动选择]}
-  - {name: ♻️ 自动选择, type: url-test, include-all: true, tolerance: 20, interval: 300, filter: "^((?!(直连)).)*$"}
-  - {name: 🌐 全部节点, type: select, include-all: true}
+  - name: 🚀 默认代理
+    type: select
+    proxies:
+      - 🔯 全部故转
+      - ♻️ 自动选择
+      - 🌐 全部节点
+      - 直连
+
+  - name: 📹 YouTube
+    type: select
+    proxies:
+      - 🔯 美国故转
+      - 🔯 日本故转
+      - ♻️ 美国自动
+      - ♻️ 日本自动
+      - ♻️ 自动选择
+      - 🌐 全部节点
+      - 直连
+
+  - name: 🍀 Google
+    type: select
+    proxies:
+      - 🔯 日本故转
+      - 🔯 美国故转
+      - ♻️ 日本自动
+      - ♻️ 美国自动
+      - ♻️ 自动选择
+      - 🌐 全部节点
+      - 直连
+
+  - name: 🤖 ChatGPT
+    type: select
+    proxies:
+      - 🔯 日本故转
+      - 🔯 美国故转
+      - ♻️ 日本自动
+      - ♻️ 美国自动
+      - ♻️ 自动选择
+      - 🌐 全部节点
+      - 直连
+
+  - name: 👨🏿‍💻 GitHub
+    type: select
+    proxies:
+      - 🔯 日本故转
+      - 🔯 美国故转
+      - ♻️ 日本自动
+      - ♻️ 美国自动
+      - ♻️ 自动选择
+      - 🌐 全部节点
+      - 直连
+
+  - name: 🐬 OneDrive
+    type: select
+    proxies:
+      - 🔯 日本故转
+      - 🔯 美国故转
+      - ♻️ 日本自动
+      - ♻️ 美国自动
+      - ♻️ 自动选择
+      - 🌐 全部节点
+      - 直连
+
+  - name: 🪟 Microsoft
+    type: select
+    proxies:
+      - 🔯 日本故转
+      - 🔯 美国故转
+      - ♻️ 日本自动
+      - ♻️ 美国自动
+      - ♻️ 自动选择
+      - 🌐 全部节点
+      - 直连
+
+  - name: 📲 Telegram
+    type: select
+    proxies:
+      - 🔯 日本故转
+      - 🔯 美国故转
+      - ♻️ 日本自动
+      - ♻️ 美国自动
+      - ♻️ 自动选择
+      - 🌐 全部节点
+      - 直连
+
+  - name: 🐦 Twitter
+    type: select
+    proxies:
+      - 🔯 日本故转
+      - 🔯 美国故转
+      - ♻️ 日本自动
+      - ♻️ 美国自动
+      - ♻️ 自动选择
+      - 🌐 全部节点
+      - 直连
+
+  - name: 💶 PayPal
+    type: select
+    proxies:
+      - 🔯 日本故转
+      - 🔯 美国故转
+      - ♻️ 日本自动
+      - ♻️ 美国自动
+      - ♻️ 自动选择
+      - 🌐 全部节点
+      - 直连
+
+  - name: 🐟 漏网之鱼
+    type: select
+    proxies:
+      - 🚀 默认代理
+      - 🔯 日本故转
+      - 🔯 美国故转
+      - ♻️ 日本自动
+      - ♻️ 美国自动
+      - ♻️ 自动选择
+      - 🌐 全部节点
+      - 直连
+
+  - name: ♻️ 日本自动
+    type: url-test
+    include-all: true
+    tolerance: 20
+    interval: 300
+    filter: "(?=.*(日|JP|(?i)Japan))^((?!(港|台|韩|新|美)).)*$"
+
+  - name: ♻️ 美国自动
+    type: url-test
+    include-all: true
+    tolerance: 20
+    interval: 300
+    filter: "(?=.*(美|US|(?i)States|America))^((?!(港|台|日|韩|新)).)*$"
+
+  - name: 🔯 日本故转
+    type: fallback
+    tolerance: 20
+    interval: 300
+    proxies:
+      - ♻️ 日本自动
+      - ♻️ 自动选择
+
+  - name: 🔯 美国故转
+    type: fallback
+    tolerance: 20
+    interval: 300
+    proxies:
+      - ♻️ 美国自动
+      - ♻️ 自动选择
+
+  - name: 🔯 全部故转
+    type: fallback
+    tolerance: 20
+    interval: 300
+    proxies:
+      - 🔯 日本故转
+      - 🔯 美国故转
+      - ♻️ 自动选择
+
+  - name: ♻️ 自动选择
+    type: url-test
+    include-all: true
+    tolerance: 20
+    interval: 300
+    filter: "^((?!(直连)).)*$"
+
+  - name: 🌐 全部节点
+    type: select
+    include-all: true
 
 # 规则匹配
 # 此规则部分没有做防泄露处理，因为弊严重大于利！
 rules:
   - RULE-SET,private_ip,直连,no-resolve
   - RULE-SET,private_domain,直连
+  # Tailscale 直连规则
+  - IP-CIDR,100.64.0.0/10,直连,no-resolve
+  - DOMAIN-SUFFIX,tailscale.com,直连
+  - DOMAIN-SUFFIX,ts.net,直连
+  - DOMAIN-SUFFIX,tailscale.io,直连
   - RULE-SET,ai,🤖 ChatGPT
   - RULE-SET,github_domain,👨🏿‍💻 GitHub
   - RULE-SET,youtube_domain,📹 YouTube
@@ -148,26 +340,73 @@ rules:
 # 规则集
 ## type：可选http/file/inline  behavior：可选domain/ipcidr format：可选yaml/mrs
 rule-anchor:
-  ip: &ip {type: http, interval: 86400, behavior: ipcidr, format: mrs}
-  domain: &domain {type: http, interval: 86400, behavior: domain, format: mrs}
-rule-providers: 
-  private_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs"}
-  ai: {  <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-!cn.mrs" }
-  youtube_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs"}
-  google_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.mrs"}
-  github_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/github.mrs"}
-  telegram_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs"}
-  twitter_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/twitter.mrs"}
-  paypal_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/paypal.mrs"}
-  onedrive_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/onedrive.mrs"}
-  microsoft_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.mrs"}
-  apple_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple.mrs"}
-  speedtest_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/ookla-speedtest.mrs"}
-  geolocation-!cn: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.mrs"}
-  cn_domain: { <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs"}
-  
-  private_ip: {<<: *ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/private.mrs"}
-  cn_ip: { <<: *ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.mrs"}
-  google_ip: { <<: *ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/google.mrs"}
-  telegram_ip: { <<: *ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs"}
-  apple_ip: {<<: *ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo-lite/geoip/apple.mrs"}
+  ip: &ip
+    type: http
+    interval: 86400
+    behavior: ipcidr
+    format: mrs
+  domain: &domain
+    type: http
+    interval: 86400
+    behavior: domain
+    format: mrs
+
+rule-providers:
+  private_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs"
+  ai:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-!cn.mrs"
+  youtube_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs"
+  google_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.mrs"
+  github_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/github.mrs"
+  telegram_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs"
+  twitter_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/twitter.mrs"
+  paypal_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/paypal.mrs"
+  onedrive_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/onedrive.mrs"
+  microsoft_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.mrs"
+  apple_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple.mrs"
+  speedtest_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/ookla-speedtest.mrs"
+  geolocation-!cn:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.mrs"
+  cn_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs"
+
+  private_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/private.mrs"
+  cn_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.mrs"
+  google_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/google.mrs"
+  telegram_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs"
+  apple_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo-lite/geoip/apple.mrs"
