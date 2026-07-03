@@ -33,7 +33,7 @@ s = s.replace(
     
     let add = all;
     if (groupName === "Relay") add = r;
-    else if (groupName === "self-auto") add = noFree;
+    else if (groupName.includes("self-auto")) add = noFree;
     
     let merged = [...new Set([...ex, ...add])];
     return `${head}    proxies: [${merged.join(", ")}]`;
