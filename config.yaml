@@ -27,7 +27,6 @@ tcp-concurrent: true
 # interface-name: enp6s18
 log-level: warning
 find-process-mode: 'off'
-global-client-fingerprint: firefox
 keep-alive-idle: 600
 keep-alive-interval: 15
 profile:
@@ -129,7 +128,7 @@ proxies:
     # 首次不填会在 Mihomo 日志中输出登录 URL，手动访问完成认证
     auth-key: ""  # <-- 替换为你的 tskey-auth-xxxxxxxx
     # 状态持久化目录，保存登录凭证防止重启后重新认证
-    state-dir: "/etc/openclash/tailscale"
+    state-dir: "/etc/nikki/run/tailscale"
     # 接受 Tailnet 中发布的子网路由
     accept-routes: true
     # 启用 UDP（DERP/STUN 打洞）
@@ -155,6 +154,7 @@ proxy-groups:
       - 🔯 日本故转
       - ♻️ 美国自动
       - ♻️ 日本自动
+      - ♻️ self-auto
       - ♻️ 自动选择
       - 🌐 全部节点
       - 直连
@@ -308,6 +308,12 @@ proxy-groups:
   - name: 🌐 全部节点
     type: select
     include-all: true
+
+  - name: ♻️ self-auto
+    type: url-test
+    proxies: []
+    tolerance: 20
+    interval: 300
 
 # 规则匹配
 # 此规则部分没有做防泄露处理，因为弊严重大于利！

@@ -21,6 +21,7 @@ s = s.replace(/(?=^proxy-groups:)/m, `proxies:\n${e}\n\n`);
 // 3. 追加分组成员名，并只排除含有dialer-proxy的节点进“中继前置”组
 let all = p.map(x => x.name);
 let r = p.filter(x => !x["dialer-proxy"]).map(x => x.name);
+let noFree = p.filter(x => !/免费/.test(x.name)).map(x => x.name);
 
 s = s.replace(
   /^(\s{2}- name:[\s\S]*?)\s{4}proxies:\s*\[([^\]]*)\]/gm,
@@ -29,7 +30,11 @@ s = s.replace(
     // 精确提取分组名
     let groupMatch = head.match(/- name:\s*([^\n]+)/);
     let groupName = groupMatch ? groupMatch[1].trim() : "";
-    let add = (groupName === "Relay") ? r : all;
+    
+    let add = all;
+    if (groupName === "Relay") add = r;
+    else if (groupName === "self-auto") add = noFree;
+    
     let merged = [...new Set([...ex, ...add])];
     return `${head}    proxies: [${merged.join(", ")}]`;
   }
