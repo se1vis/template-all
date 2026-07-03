@@ -24,17 +24,17 @@ let r = p.filter(x => !x["dialer-proxy"]).map(x => x.name);
 let noFree = p.filter(x => !/免费/.test(x.name)).map(x => x.name);
 
 s = s.replace(
-  /^(\s{2}- name:(?:(?!\s{2}- name:)[\s\S])*?)\s{4}proxies:\s*\[([^\]]*)\]/gm,
+  /^(\s{2}- name:[\s\S]*?)\s{4}proxies:\s*\[([^\]]*)\]/gm,
   (m, head, body) => {
     let ex = body.split(",").map(x => x.trim()).filter(Boolean);
     // 精确提取分组名
     let groupMatch = head.match(/- name:\s*([^\n]+)/);
     let groupName = groupMatch ? groupMatch[1].trim() : "";
-    
+
     let add = all;
     if (groupName === "Relay") add = r;
     else if (groupName.includes("self-auto")) add = noFree;
-    
+
     let merged = [...new Set([...ex, ...add])];
     return `${head}    proxies: [${merged.join(", ")}]`;
   }
