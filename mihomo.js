@@ -24,7 +24,7 @@ let r = p.filter(x => !x["dialer-proxy"]).map(x => x.name);
 let noFree = p.filter(x => !/免费/.test(x.name)).map(x => x.name);
 
 s = s.replace(
-  /^(\s{2}- name:[\s\S]*?)\s{4}proxies:\s*\[([^\]]*)\]/gm,
+  /^(\s{2}- name:(?:(?!\s{2}- name:)[\s\S])*?)\s{4}proxies:\s*\[([^\]]*)\]/gm,
   (m, head, body) => {
     let ex = body.split(",").map(x => x.trim()).filter(Boolean);
     // 精确提取分组名
