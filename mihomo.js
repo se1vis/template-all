@@ -34,7 +34,7 @@ function toYaml(obj, indent = "    ", isFirstPrefix = "  - ") {
   }
   return lines.join("\n");
 }
-let e = p.map(x => toYaml(x)).join("\n");
+let e = p.map(x => toYaml(x)).join("\n\n");
 s = s.replace(/(?=^proxy-groups:)/m, `${e}\n\n`);
 
 // 3. 追加分组成员名，并只排除含有dialer-proxy的节点进“中继前置”组
