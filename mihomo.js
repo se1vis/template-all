@@ -14,9 +14,9 @@ p = p.map(x => {
   return x;
 });
 
-// 2. 输出为单行 JSON 到 proxies 段
+// 2. 把订阅节点追加到已有 proxies 段末尾（proxy-groups 之前）
 let e = p.map(x => `  - ${JSON.stringify(x)}`).join("\n");
-s = s.replace(/(?=^proxy-groups:)/m, `proxies:\n${e}\n\n`);
+s = s.replace(/(?=^proxy-groups:)/m, `${e}\n\n`);
 
 // 3. 追加分组成员名，并只排除含有dialer-proxy的节点进“中继前置”组
 let all = p.map(x => x.name);
