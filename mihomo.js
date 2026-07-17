@@ -19,6 +19,7 @@ function toYaml(obj, indent = "    ", isFirstPrefix = "  - ") {
   let lines = [];
   let isFirst = true;
   for (let [k, v] of Object.entries(obj)) {
+    if (v === undefined) continue;
     let prefix = isFirst ? isFirstPrefix : indent;
     isFirst = false;
     if (v !== null && typeof v === "object" && !Array.isArray(v)) {
