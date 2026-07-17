@@ -15,7 +15,25 @@ p = p.map(x => {
 });
 
 // 2. 把订阅节点追加到已有 proxies 段末尾（proxy-groups 之前）
-let e = p.map(x => `  - ${JSON.stringify(x)}`).join("\n");
+function toYaml(obj, indent = "    ", isFirstPrefix = "  - ") {
+  let lines = [];
+  let isFirst = true;
+  for (let [k, v] of Object.entries(obj)) {
+    let prefix = isFirst ? isFirstPrefix : indent;
+    isFirst = false;
+    if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+      lines.push(`${prefix}${k}:`);
+      let sub = toYaml(v, indent + "  ", indent + "  ");
+      if (sub) lines.push(sub);
+    } else if (Array.isArray(v)) {
+      lines.push(`${prefix}${k}: [${v.map(i => JSON.stringify(i)).join(", ")}]`);
+    } else {
+      lines.push(`${prefix}${k}: ${JSON.stringify(v)}`);
+    }
+  }
+  return lines.join("\n");
+}
+let e = p.map(x => toYaml(x)).join("\n");
 s = s.replace(/(?=^proxy-groups:)/m, `${e}\n\n`);
 
 // 3. 追加分组成员名，并只排除含有dialer-proxy的节点进“中继前置”组
