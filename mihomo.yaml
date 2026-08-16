@@ -285,6 +285,7 @@ proxy-groups:
     proxies: []
     tolerance: 20
     interval: 300
+    filter: "(?=.*(狮|SG|(?i)Singapore))^((?!(港|台|日|韩|美)).)*$"
 
   - name: 自动选择
     type: url-test
