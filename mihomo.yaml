@@ -104,7 +104,8 @@ dns:
     - https://dns.google/dns-query#自动选择
 
   nameserver-policy:
-    "geosite:cn,private":
+    # 使用下方已有的 MRS 规则集，避免启动时下载 GeoSite.dat。
+    "rule-set:private_domain,cn_domain":
       - https://dns.alidns.com/dns-query
       - https://doh.pub/dns-query
 
