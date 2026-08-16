@@ -41,6 +41,8 @@ s = s.replace(/(?=^proxy-groups:)/m, `${e}\n\n`);
 let all = p.map(x => x.name);
 let r = p.filter(x => !x["dialer-proxy"]).map(x => x.name);
 let noFree = p.filter(x => !/免费/.test(x.name)).map(x => x.name);
+// 仅注入名称明确标为新加坡/狮城/SG/Singapore 的节点。
+let singapore = p.filter(x => /(?:新加坡|狮城|Singapore|(?:^|[^A-Za-z])SG(?:$|[^A-Za-z]))/i.test(x.name)).map(x => x.name);
 
 s = s.replace(
   /^(\s{2}- name:[\s\S]*?)\s{4}proxies:\s*\[([^\]]*)\]/gm,
@@ -53,6 +55,7 @@ s = s.replace(
     let add = all;
     if (groupName === "Relay") add = r;
     else if (groupName.includes("self-auto")) add = noFree;
+    else if (groupName === "狮城自动") add = singapore;
 
     let merged = [...new Set([...ex, ...add])];
     return `${head}    proxies: [${merged.join(", ")}]`;
