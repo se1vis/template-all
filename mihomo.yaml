@@ -104,10 +104,16 @@ dns:
     - https://dns.google/dns-query#自动选择
 
   nameserver-policy:
-    # 使用下方已有的 MRS 规则集，避免启动时下载 GeoSite.dat。
-    "rule-set:private_domain,cn_domain":
+    # 兼容旧版 Mihomo：不用 GeoSite.dat 或 rule-set DNS 策略。
+    "+.cn":
       - https://dns.alidns.com/dns-query
       - https://doh.pub/dns-query
+    "+.lan":
+      - 223.5.5.5
+      - 119.29.29.29
+    "+.local":
+      - 223.5.5.5
+      - 119.29.29.29
 
 # 出站策略，根据自己情况调整每个策略里分组排序，增删都可以，比如把美国自动放到第一个，注意别漏掉表情逗号等。
 # 如果相应分组没有筛选到对应的国家，请根据自己节点名字调整筛选关键字。
