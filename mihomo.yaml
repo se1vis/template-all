@@ -282,7 +282,7 @@ proxy-groups:
   - name: 狮城自动
     type: url-test
     icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/flags/SG.png
-    proxies: []
+    include-all: true
     tolerance: 20
     interval: 300
     filter: "(?=.*(狮|SG|(?i)Singapore))^((?!(港|台|日|韩|美)).)*$"
