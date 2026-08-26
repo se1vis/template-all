@@ -104,10 +104,12 @@ dns:
     - https://dns.google/dns-query#自动选择
 
   nameserver-policy:
-    # 兼容旧版 Mihomo：不用 GeoSite.dat 或 rule-set DNS 策略。
+    "rule-set:cn_domain,private_domain":
+      - 223.5.5.5
+      - 119.29.29.29
     "+.cn":
-      - https://dns.alidns.com/dns-query
-      - https://doh.pub/dns-query
+      - 223.5.5.5
+      - 119.29.29.29
     "+.lan":
       - 223.5.5.5
       - 119.29.29.29
