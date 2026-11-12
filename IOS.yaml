@@ -1,15 +1,12 @@
-# 全局配置
+# 全局配置 (适配 iOS Clash-Client)
 port: 7890
 socks-port: 7891
-redir-port: 7892
 mixed-port: 7893
-tproxy-port: 7894
-allow-lan: true
-bind-address: "*"
+allow-lan: false
+bind-address: "127.0.0.1"
 ipv6: true
 unified-delay: true
 tcp-concurrent: true
-# interface-name: enp6s18
 log-level: warning
 find-process-mode: 'off'
 keep-alive-idle: 600
@@ -17,14 +14,6 @@ keep-alive-interval: 15
 profile:
   store-selected: true
   store-fake-ip: true
-
-# 为防止使用插件朋友遇到面板问题，我注释掉了此模块。
-# 跑裸核朋友自行删除注释即可，使用nikki仅内核的ui路径改为/etc/nikki/run/ui
-#external-controller: 0.0.0.0:9090
-#secret: ""
-#external-ui: "/etc/mihomo/ui"
-#external-ui-name: zashboard
-#external-ui-url: "https://github.com/Zephyruso/zashboard/archive/refs/heads/gh-pages.zip"
 
 # 嗅探
 sniffer:
@@ -47,10 +36,11 @@ sniffer:
     - "+.v2ex.com"
   skip-domain:
     - "+.baidu.com"
+    - "+.push.apple.com"
     - "+.tailscale.com"
     - "+.ts.net"
 
-# 入站
+# 入站 (iOS NetworkExtension TUN)
 tun:
   enable: true
   # system/gvisor/mixed
@@ -58,26 +48,21 @@ tun:
   dns-hijack:
     - "any:53"
     - "tcp://any:53"
-  #使用nikki，混入全部不修改的情况，开启接口指定为nikki
-  #使用仅内核自行修改下面三项为true
-  #device: nikki
-  auto-route: false
-  auto-redirect: false
-  auto-detect-interface: false
-  # Tailscale 网段排除，防止 TUN 劫持产生路由环路
-  route-exclude-address:
-    - 192.168.100.0/24
-    - 100.64.0.0/10
-    - fd7a:115c:a1e0::/48
+  auto-route: true
+  auto-detect-interface: true
+  # 注意：因为我们在 Mihomo 内置了 Tailscale 出站节点，切勿在 route-exclude-address 中排除 100.64.0.0/10，
+  # 否则 iOS 系统不会将 Tailscale 流量送入 TUN，导致无法通过内置的 tailscale 节点访问内网！
+  # route-exclude-address:
+  #   - 192.168.100.0/24
 
 # DNS模块
 dns:
   enable: true
-  listen: 0.0.0.0:1053
+  listen: 127.0.0.1:1053
   ipv6: true
   respect-rules: true
   enhanced-mode: fake-ip
-  fake-ip-range: 28.0.0.1/8
+  fake-ip-range: 198.18.0.1/16
   fake-ip-filter-mode: blacklist
   fake-ip-filter:
     - "rule-set:private_domain,cn_domain"
@@ -85,7 +70,8 @@ dns:
     - "+.msftncsi.com"
     - "time.*.com"
     - "+.market.xiaomi.com"
-    # Tailscale 域名排除 fake-ip
+    - "+.push.apple.com"
+    # Tailscale 域名排除 fake-ip，确保返回真实的 100.x.x.x 内网 IP
     - "+.tailscale.com"
     - "+.ts.net"
     - "+.tailscale.io"
@@ -105,6 +91,8 @@ dns:
     - https://dns.google/dns-query#自动选择
 
   nameserver-policy:
+    # 将 MagicDNS (*.ts.net) 交由内置的 tailscale 节点解析
+    "+.ts.net": "ts://tailscale"
     "rule-set:cn_domain,private_domain":
       - 223.5.5.5
       - 119.29.29.29
@@ -125,17 +113,16 @@ dns:
 proxies:
   - name: 直连
     type: direct
-  # Tailscale 节点 - 让 Mihomo 内核直接加入 Tailscale 网络，无需单独安装 Tailscale 插件
+  # Tailscale 节点 - 让 iOS 端 Clash-Client 内核直接加入 Tailscale 网络（解决 iOS 单 VPN 限制）
   - name: "tailscale"
     type: tailscale
     # 在 Tailscale 控制台中显示的设备名称
-    hostname: "iStoreOS-Mihomo"
-    # 认证密钥：在 https://login.tailscale.com/admin/settings/keys 生成
-    # 首次不填会在 Mihomo 日志中输出登录 URL，手动访问完成认证
-    auth-key: ""  # <-- 替换为你的 tskey-auth-xxxxxxxx
-    # 状态持久化目录，保存登录凭证防止重启后重新认证
-    state-dir: "/etc/nikki/run/tailscale"
-    # 接受 Tailnet 中发布的子网路由
+    hostname: "iOS-Clash"
+    # 认证密钥：必填！请在 https://login.tailscale.com/admin/settings/keys 生成 Auth Key 填入此处
+    auth-key: "tskey-auth-xxxxxxxx"  # <-- 替换为你的真实 Auth Key
+    # 状态持久化目录：iOS 端由于沙盒权限限制，必须使用相对路径（不能用 /etc/nikki/...）
+    state-dir: "tailscale"
+    # 接受 Tailnet 中发布的子网路由（如家里旁路由发布的 192.168.100.0/24）
     accept-routes: true
     # 启用 UDP（DERP/STUN 打洞）
     udp: true
@@ -145,6 +132,12 @@ proxies:
     # control-url: "https://controlplane.tailscale.com"
 
 proxy-groups:
+  - name: Tailscale
+    type: select
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Tailscale.png
+    proxies:
+      - tailscale
+      - 直连
   - name: 默认代理
     type: select
     icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Proxy.png
@@ -296,12 +289,13 @@ proxy-groups:
     include-all: true
     tolerance: 20
     interval: 300
-    filter: "^((?!(直连)).)*$"
+    filter: "^((?!(直连|tailscale)).)*$"
 
   - name: 全部节点
     type: select
     icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Global.png
     include-all: true
+    filter: "^((?!(tailscale)).)*$"
 
   - name: self-auto
     type: url-test
@@ -313,13 +307,19 @@ proxy-groups:
 # 规则匹配
 # 此规则部分没有做防泄露处理，因为弊严重大于利！
 rules:
+  # Tailscale 路由规则（必须放在 private_ip 之前，因为 private_ip 包含 100.64.0.0/10）
+  # 1. Tailscale 控制平面与打洞服务器直连（防环路）
+  - DOMAIN-SUFFIX,tailscale.com,直连
+  - DOMAIN-SUFFIX,tailscale.io,直连
+  # 2. Tailscale 虚拟内网 IP、MagicDNS 域名以及你家里的子网路由走 Tailscale 策略组
+  - DOMAIN-SUFFIX,ts.net,Tailscale
+  - IP-CIDR,100.64.0.0/10,Tailscale,no-resolve
+  - IP-CIDR6,fd7a:115c:a1e0::/48,Tailscale,no-resolve
+  # 如果你在外网需要通过 Tailscale 访问家里局域网（如 192.168.100.0/24），请保留下面这行；
+  # 如果你在家里 Wi-Fi 下想直接走局域网，可以在面板把「Tailscale」策略组切换为「直连」
+  - IP-CIDR,192.168.100.0/24,Tailscale,no-resolve
   - RULE-SET,private_ip,直连,no-resolve
   - RULE-SET,private_domain,直连
-  # Tailscale 直连规则
-  - IP-CIDR,100.64.0.0/10,直连,no-resolve
-  - DOMAIN-SUFFIX,tailscale.com,直连
-  - DOMAIN-SUFFIX,ts.net,直连
-  - DOMAIN-SUFFIX,tailscale.io,直连
   - RULE-SET,ai,ChatGPT
   - RULE-SET,github_domain,GitHub
   - RULE-SET,youtube_domain,YouTube
