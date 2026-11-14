@@ -64,10 +64,8 @@ tun:
   auto-route: false
   auto-redirect: false
   auto-detect-interface: false
-  # Tailscale 网段排除，防止 TUN 劫持产生路由环路
-  route-exclude-address:
-    - 100.64.0.0/10
-    - fd7a:115c:a1e0::/48
+  # 注意：因为使用的是 Mihomo 内置的 Tailscale 节点（未安装系统的 Tailscale 插件），
+  # 切勿在 route-exclude-address 中排除 100.64.0.0/10，否则局域网设备的 Tailscale 流量无法进入 TUN！
 
 # DNS模块
 dns:
@@ -76,7 +74,7 @@ dns:
   ipv6: true
   respect-rules: true
   enhanced-mode: fake-ip
-  fake-ip-range: 28.0.0.1/8
+  fake-ip-range: 198.18.0.1/16
   fake-ip-filter-mode: blacklist
   fake-ip-filter:
     - "rule-set:private_domain,cn_domain"
@@ -84,7 +82,8 @@ dns:
     - "+.msftncsi.com"
     - "time.*.com"
     - "+.market.xiaomi.com"
-    # Tailscale 域名排除 fake-ip
+    - "+.push.apple.com"
+    # Tailscale 域名排除 fake-ip，确保返回真实的 100.x.x.x 内网 IP
     - "+.tailscale.com"
     - "+.ts.net"
     - "+.tailscale.io"
@@ -104,6 +103,8 @@ dns:
     - https://dns.google/dns-query#自动选择
 
   nameserver-policy:
+    # 将 MagicDNS (*.ts.net) 交由内置的 tailscale 节点解析
+    "+.ts.net": "ts://tailscale"
     "rule-set:cn_domain,private_domain":
       - 223.5.5.5
       - 119.29.29.29
@@ -144,6 +145,12 @@ proxies:
     # control-url: "https://controlplane.tailscale.com"
 
 proxy-groups:
+  - name: Tailscale
+    type: select
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Tailscale.png
+    proxies:
+      - tailscale
+      - 直连
   - name: 默认代理
     type: select
     icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Proxy.png
@@ -295,12 +302,13 @@ proxy-groups:
     include-all: true
     tolerance: 20
     interval: 300
-    filter: "^((?!(直连)).)*$"
+    filter: "^((?!(直连|tailscale)).)*$"
 
   - name: 全部节点
     type: select
     icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Global.png
     include-all: true
+    filter: "^((?!(tailscale)).)*$"
 
   - name: self-auto
     type: url-test
@@ -312,13 +320,16 @@ proxy-groups:
 # 规则匹配
 # 此规则部分没有做防泄露处理，因为弊严重大于利！
 rules:
+  # Tailscale 路由规则（必须放在 private_ip 之前，因为 private_ip 包含 100.64.0.0/10）
+  # 1. Tailscale 控制平面与打洞服务器直连（防环路）
+  - DOMAIN-SUFFIX,tailscale.com,直连
+  - DOMAIN-SUFFIX,tailscale.io,直连
+  # 2. 局域网设备访问其他 Tailscale 节点及 MagicDNS 域名走 Tailscale 策略组
+  - DOMAIN-SUFFIX,ts.net,Tailscale
+  - IP-CIDR,100.64.0.0/10,Tailscale,no-resolve
+  - IP-CIDR6,fd7a:115c:a1e0::/48,Tailscale,no-resolve
   - RULE-SET,private_ip,直连,no-resolve
   - RULE-SET,private_domain,直连
-  # Tailscale 直连规则
-  - IP-CIDR,100.64.0.0/10,直连,no-resolve
-  - DOMAIN-SUFFIX,tailscale.com,直连
-  - DOMAIN-SUFFIX,ts.net,直连
-  - DOMAIN-SUFFIX,tailscale.io,直连
   - RULE-SET,ai,ChatGPT
   - RULE-SET,github_domain,GitHub
   - RULE-SET,youtube_domain,YouTube

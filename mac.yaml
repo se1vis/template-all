@@ -1,0 +1,414 @@
+# 全局配置 (适配 macOS 端)
+port: 7890
+socks-port: 7891
+mixed-port: 7893
+allow-lan: false
+bind-address: "127.0.0.1"
+ipv6: true
+unified-delay: true
+tcp-concurrent: true
+log-level: warning
+# macOS 桌面端支持按进程名/应用分流，推荐设为 strict
+find-process-mode: strict
+keep-alive-idle: 600
+keep-alive-interval: 15
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+# 嗅探
+sniffer:
+  enable: true
+  sniff:
+    HTTP:
+      ports:
+        - 80
+        - 8080-8880
+      override-destination: true
+    TLS:
+      ports:
+        - 443
+        - 8443
+    QUIC:
+      ports:
+        - 443
+        - 8443
+  force-domain:
+    - "+.v2ex.com"
+  skip-domain:
+    - "+.baidu.com"
+    - "+.push.apple.com"
+    - "+.tailscale.com"
+    - "+.ts.net"
+
+# 入站 (macOS TUN)
+tun:
+  enable: true
+  # system/gvisor/mixed
+  stack: mixed
+  dns-hijack:
+    - "any:53"
+    - "tcp://any:53"
+  auto-route: true
+  auto-detect-interface: true
+  # 注意：因为我们在 Mihomo 内置了 Tailscale 出站节点，切勿在 route-exclude-address 中排除 100.64.0.0/10，
+  # 否则 macOS 系统不会将 Tailscale 流量送入 TUN，导致无法通过内置的 tailscale 节点访问内网！
+  # route-exclude-address:
+  #   - 192.168.100.0/24
+
+# DNS模块
+dns:
+  enable: true
+  listen: 127.0.0.1:1053
+  ipv6: true
+  respect-rules: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter-mode: blacklist
+  fake-ip-filter:
+    - "rule-set:private_domain,cn_domain"
+    - "+.msftconnecttest.com"
+    - "+.msftncsi.com"
+    - "time.*.com"
+    - "+.market.xiaomi.com"
+    - "+.push.apple.com"
+    # Tailscale 域名排除 fake-ip，确保返回真实的 100.x.x.x 内网 IP
+    - "+.tailscale.com"
+    - "+.ts.net"
+    - "+.tailscale.io"
+  
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+
+  # 仅解析机场节点的域名，保证启动和恢复连接稳定
+  proxy-server-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+
+  # 默认给非中国域名；# 后接你的代理策略组名
+  nameserver:
+    - https://1.1.1.1/dns-query#自动选择
+    - https://dns.google/dns-query#自动选择
+
+  nameserver-policy:
+    # 将 MagicDNS (*.ts.net) 交由内置的 tailscale 节点解析
+    "+.ts.net": "ts://tailscale"
+    "rule-set:cn_domain,private_domain":
+      - 223.5.5.5
+      - 119.29.29.29
+    "+.cn":
+      - 223.5.5.5
+      - 119.29.29.29
+    "+.lan":
+      - 223.5.5.5
+      - 119.29.29.29
+    "+.local":
+      - 223.5.5.5
+      - 119.29.29.29
+
+# 出站策略，根据自己情况调整每个策略里分组排序，增删都可以，比如把美国自动放到第一个，注意别漏掉表情逗号等。
+# 如果相应分组没有筛选到对应的国家，请根据自己节点名字调整筛选关键字。
+# 没有再使用锚点，是考虑很多新手修改难度，这样新手修改某个分组更容易些。
+# 节点信息
+proxies:
+  - name: 直连
+    type: direct
+  # Tailscale 节点 - 让 macOS 端 Mihomo 内核直接加入 Tailscale 网络
+  - name: "tailscale"
+    type: tailscale
+    # 在 Tailscale 控制台中显示的设备名称
+    hostname: "Mac-Clash"
+    # 认证密钥：必填！请在 https://login.tailscale.com/admin/settings/keys 生成 Auth Key 填入此处
+    auth-key: "tskey-auth-xxxxxxxx"  # <-- 替换为你的真实 Auth Key
+    # 状态持久化目录：使用相对路径，自动保存在客户端配置目录下的 tailscale 文件夹中
+    state-dir: "tailscale"
+    # 接受 Tailnet 中发布的子网路由（如家里旁路由发布的 192.168.100.0/24）
+    accept-routes: true
+    # 启用 UDP（DERP/STUN 打洞）
+    udp: true
+    # 是否为临时节点（关闭后自动从 Tailnet 移除），建议 false
+    ephemeral: false
+    # 如果使用 Headscale 自建控制服务器，取消注释并填写地址
+    # control-url: "https://controlplane.tailscale.com"
+
+proxy-groups:
+  - name: Tailscale
+    type: select
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Tailscale.png
+    proxies:
+      - tailscale
+      - 直连
+  - name: 默认代理
+    type: select
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Proxy.png
+    proxies:
+      - 狮城自动
+      - 自动选择
+      - 全部节点
+      - 直连
+
+  - name: YouTube
+    type: select
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/YouTube.png
+    proxies:
+      - 美国自动
+      - 日本自动
+      - 狮城自动
+      - self-auto
+      - 自动选择
+      - 全部节点
+      - 直连
+
+  - name: Google
+    type: select
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Google_Search.png
+    proxies:
+      - 日本自动
+      - 美国自动
+      - 狮城自动
+      - 自动选择
+      - 全部节点
+      - 直连
+
+  - name: ChatGPT
+    type: select
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/ChatGPT.png
+    proxies:
+      - 日本自动
+      - 美国自动
+      - 狮城自动
+      - 自动选择
+      - 全部节点
+      - 直连
+
+  - name: GitHub
+    type: select
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/github.png
+    proxies:
+      - 日本自动
+      - 美国自动
+      - 狮城自动
+      - 自动选择
+      - 全部节点
+      - 直连
+
+  - name: OneDrive
+    type: select
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/OneDrive.png
+    proxies:
+      - 日本自动
+      - 美国自动
+      - 狮城自动
+      - 自动选择
+      - 全部节点
+      - 直连
+
+  - name: Microsoft
+    type: select
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Microsoft.png
+    proxies:
+      - 日本自动
+      - 美国自动
+      - 狮城自动
+      - 自动选择
+      - 全部节点
+      - 直连
+
+  - name: Telegram
+    type: select
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Telegram.png
+    proxies:
+      - 日本自动
+      - 美国自动
+      - 狮城自动
+      - 自动选择
+      - 全部节点
+      - 直连
+
+  - name: Twitter
+    type: select
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Twitter.png
+    proxies:
+      - 日本自动
+      - 美国自动
+      - 狮城自动
+      - 自动选择
+      - 全部节点
+      - 直连
+
+  - name: PayPal
+    type: select
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/PayPal.png
+    proxies:
+      - 日本自动
+      - 美国自动
+      - 狮城自动
+      - 自动选择
+      - 全部节点
+      - 直连
+
+  - name: 漏网之鱼
+    type: select
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/whale_fishnet2.png
+    proxies:
+      - 默认代理
+      - 日本自动
+      - 美国自动
+      - 狮城自动
+      - 自动选择
+      - 全部节点
+      - 直连
+
+  - name: 日本自动
+    type: url-test
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/flags/JP.png
+    include-all: true
+    tolerance: 20
+    interval: 300
+    filter: "(?=.*(日|JP|(?i)Japan))^((?!(港|台|韩|新|美)).)*$"
+
+  - name: 美国自动
+    type: url-test
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/flags/US.png
+    include-all: true
+    tolerance: 20
+    interval: 300
+    filter: "(?=.*(美|US|(?i)States|America))^((?!(港|台|日|韩|新)).)*$"
+
+  - name: 狮城自动
+    type: url-test
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/flags/SG.png
+    include-all: true
+    tolerance: 20
+    interval: 300
+    filter: "(?=.*(狮|SG|(?i)Singapore))^((?!(港|台|日|韩|美)).)*$"
+
+  - name: 自动选择
+    type: url-test
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Auto.png
+    include-all: true
+    tolerance: 20
+    interval: 300
+    filter: "^((?!(直连|tailscale)).)*$"
+
+  - name: 全部节点
+    type: select
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Global.png
+    include-all: true
+    filter: "^((?!(tailscale)).)*$"
+
+  - name: self-auto
+    type: url-test
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Oracle.png
+    proxies: []
+    tolerance: 20
+    interval: 300
+
+# 规则匹配
+# 此规则部分没有做防泄露处理，因为弊严重大于利！
+rules:
+  # Tailscale 路由规则（必须放在 private_ip 之前，因为 private_ip 包含 100.64.0.0/10）
+  # 1. Tailscale 控制平面与打洞服务器直连（防环路）
+  - DOMAIN-SUFFIX,tailscale.com,直连
+  - DOMAIN-SUFFIX,tailscale.io,直连
+  # 2. Tailscale 虚拟内网 IP、MagicDNS 域名以及你家里的子网路由走 Tailscale 策略组
+  - DOMAIN-SUFFIX,ts.net,Tailscale
+  - IP-CIDR,100.64.0.0/10,Tailscale,no-resolve
+  - IP-CIDR6,fd7a:115c:a1e0::/48,Tailscale,no-resolve
+  # 如果你在外网需要通过 Tailscale 访问家里局域网（如 192.168.100.0/24），请保留下面这行；
+  # 如果你在家里 Wi-Fi 下想直接走局域网，可以在面板把「Tailscale」策略组切换为「直连」
+  - IP-CIDR,192.168.100.0/24,Tailscale,no-resolve
+  - RULE-SET,private_ip,直连,no-resolve
+  - RULE-SET,private_domain,直连
+  - RULE-SET,ai,ChatGPT
+  - RULE-SET,github_domain,GitHub
+  - RULE-SET,youtube_domain,YouTube
+  - RULE-SET,google_domain,Google
+  - RULE-SET,onedrive_domain,OneDrive
+  - RULE-SET,microsoft_domain,Microsoft
+  - RULE-SET,apple_domain,直连
+  - RULE-SET,telegram_domain,Telegram
+  - RULE-SET,twitter_domain,Twitter
+  - RULE-SET,paypal_domain,PayPal
+  - RULE-SET,apple_ip,直连
+  - RULE-SET,google_ip,Google
+  - RULE-SET,telegram_ip,Telegram
+  - RULE-SET,geolocation-!cn,默认代理
+  - RULE-SET,cn_domain,直连
+  - RULE-SET,cn_ip,直连
+  - MATCH,漏网之鱼
+
+# 规则集
+## type：可选http/file/inline  behavior：可选domain/ipcidr format：可选yaml/mrs
+rule-anchor:
+  ip: &ip
+    type: http
+    interval: 86400
+    behavior: ipcidr
+    format: mrs
+  domain: &domain
+    type: http
+    interval: 86400
+    behavior: domain
+    format: mrs
+
+rule-providers:
+  private_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs"
+  ai:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-!cn.mrs"
+  youtube_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs"
+  google_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.mrs"
+  github_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/github.mrs"
+  telegram_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs"
+  twitter_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/twitter.mrs"
+  paypal_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/paypal.mrs"
+  onedrive_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/onedrive.mrs"
+  microsoft_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.mrs"
+  apple_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple.mrs"
+  speedtest_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/ookla-speedtest.mrs"
+  geolocation-!cn:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.mrs"
+  cn_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs"
+
+  private_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/private.mrs"
+  cn_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.mrs"
+  google_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/google.mrs"
+  telegram_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs"
+  apple_ip:
+    <<: *ip
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo-lite/geoip/apple.mrs"
