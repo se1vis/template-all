@@ -147,7 +147,7 @@ proxies:
 proxy-groups:
   - name: Tailscale
     type: select
-    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Tailscale.png
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/tailscale.png
     proxies:
       - tailscale
       - 直连
