@@ -151,6 +151,15 @@ proxy-groups:
     proxies:
       - tailscale
       - 直连
+
+  - name: 广告拦截
+    type: select
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Advertising.png
+    proxies:
+      - REJECT
+      - REJECT-DROP
+      - 直连
+
   - name: 默认代理
     type: select
     icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Proxy.png
@@ -328,8 +337,12 @@ rules:
   - DOMAIN-SUFFIX,ts.net,Tailscale
   - IP-CIDR,100.64.0.0/10,Tailscale,no-resolve
   - IP-CIDR6,fd7a:115c:a1e0::/48,Tailscale,no-resolve
+  # 3. 私有局域网直连（确保不被广告拦截或代理规则误拦截）
   - RULE-SET,private_ip,直连,no-resolve
   - RULE-SET,private_domain,直连
+  # 4. 广告拦截（放在所有外网/国内服务规则之前）
+  - RULE-SET,ads_domain,广告拦截
+  # 5. 常用服务域名分流
   - RULE-SET,ai,ChatGPT
   - RULE-SET,github_domain,GitHub
   - RULE-SET,youtube_domain,YouTube
@@ -340,12 +353,15 @@ rules:
   - RULE-SET,telegram_domain,Telegram
   - RULE-SET,twitter_domain,Twitter
   - RULE-SET,paypal_domain,PayPal
+  # 6. 非中国与国内域名分流（放在 IP 规则之前，避免域名提前触发本地 DNS 解析）
+  - RULE-SET,geolocation-!cn,默认代理
+  - RULE-SET,cn_domain,直连
+  # 7. IP 规则分流（处理纯 IP 直连或未命中上述域名的请求）
   - RULE-SET,apple_ip,直连
   - RULE-SET,google_ip,Google
   - RULE-SET,telegram_ip,Telegram
-  - RULE-SET,geolocation-!cn,默认代理
-  - RULE-SET,cn_domain,直连
   - RULE-SET,cn_ip,直连
+  # 8. 兜底规则
   - MATCH,漏网之鱼
 
 # 规则集
@@ -366,6 +382,9 @@ rule-providers:
   private_domain:
     <<: *domain
     url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs"
+  ads_domain:
+    <<: *domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ads-all.mrs"
   ai:
     <<: *domain
     url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-!cn.mrs"
