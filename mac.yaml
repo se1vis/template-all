@@ -142,7 +142,7 @@ proxy-groups:
 
   - name: 广告拦截
     type: select
-    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Advertising.png
+    icon: https://raw.githubusercontent.com/se1vis/Koolson-Qure/master/IconSet/brand/Advertising.png
     proxies:
       - REJECT
       - REJECT-DROP
